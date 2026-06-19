@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>M'Story · Учёт времени</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; min-height: 100vh; }
+.wrap { max-width: 420px; margin: 0 auto; padding: 1.25rem 1rem 2rem; }
+.header { text-align: center; margin-bottom: 1.25rem; }
+.brand { font-size: 24px; font-weight: 700; color: #1a1a1a; letter-spacing: 0.02em; }
+.brand-sub { font-size: 12px; color: #888; margin-top: 1px; margin-bottom: 10px; letter-spacing: 0.05em; text-transform: uppercase; }
+.date-line { font-size: 13px; color: #888; margin-bottom: 8px; }
+.time-badge { display: inline-block; background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 5px 20px; font-size: 26px; font-weight: 500; color: #1a1a1a; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.section-label { font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+.employees { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; margin-bottom: 1.25rem; }
+.emp-btn { background: #fff; border: 1.5px solid #e8e8e8; border-radius: 14px; padding: 14px 8px; text-align: center; cursor: pointer; transition: all 0.15s; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.emp-btn:active { transform: scale(0.97); }
+.emp-btn.selected { border: 2px solid #1D9E75; background: #E8F8F2; }
+.emp-icon { font-size: 20px; margin-bottom: 4px; }
+.emp-name { font-size: 15px; font-weight: 600; color: #1a1a1a; }
+.emp-role { font-size: 11px; color: #999; margin-top: 2px; }
+.slot-row { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 12px; padding: 10px 16px; margin-bottom: 1.25rem; border: 1px solid #e8e8e8; }
+.slot-time { font-size: 22px; font-weight: 500; color: #1a1a1a; flex: 1; text-align: center; }
+.slot-note { font-size: 11px; color: #bbb; flex-shrink: 0; }
+.action-btns { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin-bottom: 1.25rem; }
+.btn-work { background: #E8F8F2; border: 1.5px solid #5DCAA5; border-radius: 14px; padding: 18px 8px; text-align: center; cursor: pointer; transition: all 0.15s; }
+.btn-work:active { transform: scale(0.97); }
+.btn-work.disabled { opacity: 0.4; pointer-events: none; }
+.btn-work .bicon { font-size: 26px; }
+.btn-work .blabel { font-size: 15px; color: #085041; font-weight: 600; margin-top: 6px; }
+.btn-free { background: #FEF0EB; border: 1.5px solid #F0997B; border-radius: 14px; padding: 18px 8px; text-align: center; cursor: pointer; transition: all 0.15s; }
+.btn-free:active { transform: scale(0.97); }
+.btn-free.disabled { opacity: 0.4; pointer-events: none; }
+.btn-free .bicon { font-size: 26px; }
+.btn-free .blabel { font-size: 15px; color: #712B13; font-weight: 600; margin-top: 6px; }
+.sending { display: none; text-align: center; padding: 14px; font-size: 13px; color: #888; }
+.sending.show { display: block; }
+.result-card { display: none; border-radius: 14px; border: 1px solid #e8e8e8; padding: 1.25rem; text-align: center; margin-bottom: 1rem; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+.result-card.show { display: block; }
+.r-emoji { font-size: 42px; margin-bottom: 8px; }
+.r-name { font-size: 18px; font-weight: 600; color: #1a1a1a; margin-bottom: 6px; }
+.r-msg { font-size: 14px; color: #555; line-height: 1.6; margin-bottom: 10px; }
+.r-time { font-size: 13px; color: #888; }
+.r-time b { color: #1a1a1a; font-weight: 600; }
+.r-sync { font-size: 11px; margin-top: 8px; }
+.r-sync.ok { color: #0F6E56; }
+.r-sync.err { color: #cc4400; }
+.special-card { display: none; border-radius: 14px; padding: 13px 16px; margin-bottom: 10px; }
+.special-card.show { display: block; }
+.special-card.early { background: #FFF8E1; border: 1px solid #FFD54F; }
+.special-card.late { background: #F3E5F5; border: 1px solid #CE93D8; }
+.special-card.saturday { background: #E8F5E9; border: 1px solid #81C784; }
+.special-card.hero { background: #E3F2FD; border: 1px solid #64B5F6; }
+.special-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; color: #1a1a1a; }
+.special-text { font-size: 13px; line-height: 1.5; color: #444; }
+.tab-bar { display: flex; gap: 6px; margin-bottom: 1.25rem; }
+.tab { flex: 1; text-align: center; padding: 9px 4px; font-size: 12px; border-radius: 10px; cursor: pointer; border: 1px solid #e0e0e0; color: #888; background: #fff; font-weight: 500; }
+.tab.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+.view { display: none; }
+.view.active { display: block; }
+.log-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+.log-left { display: flex; flex-direction: column; gap: 2px; }
+.log-name { font-size: 14px; font-weight: 600; color: #1a1a1a; }
+.log-type-w { font-size: 12px; color: #0F6E56; }
+.log-type-f { font-size: 12px; color: #993C1D; }
+.log-time { font-size: 14px; color: #555; font-weight: 500; }
+.log-sync-ok { font-size: 10px; color: #0F6E56; }
+.log-sync-err { font-size: 10px; color: #cc4400; }
+.empty { font-size: 13px; color: #aaa; text-align: center; padding: 2rem 0; line-height: 1.8; }
+.already-card { background: #FFF3E0; border: 1px solid #FFB74D; border-radius: 14px; padding: 14px 16px; margin-bottom: 1rem; text-align: center; display: none; }
+.already-card.show { display: block; }
+.already-title { font-size: 14px; font-weight: 600; color: #E65100; margin-bottom: 4px; }
+.already-text { font-size: 13px; color: #BF360C; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="brand">M'Story</div>
+    <div class="brand-sub">производство · учёт времени</div>
+    <div class="date-line" id="date-line"></div>
+    <div><span class="time-badge" id="clock">--:--</span></div>
+  </div>
+
+  <div class="tab-bar">
+    <div class="tab active" onclick="switchTab('checkin')">Отметиться</div>
+    <div class="tab" onclick="switchTab('log')">Журнал</div>
+  </div>
+
+  <div class="view active" id="view-checkin">
+    <div class="section-label">Кто ты?</div>
+    <div class="employees" id="emp-grid"></div>
+
+    <div class="slot-row">
+      <span style="font-size:12px;color:#aaa;flex-shrink:0">Запишется</span>
+      <div class="slot-time" id="slot-display">--:--</div>
+      <span class="slot-note">± до 7 мин</span>
+    </div>
+
+    <div class="action-btns">
+      <div class="btn-work" id="btn-work" onclick="markTime('work')">
+        <div class="bicon">💪</div>
+        <div class="blabel">К станку!</div>
+      </div>
+      <div class="btn-free" id="btn-free" onclick="markTime('free')">
+        <div class="bicon">🏃</div>
+        <div class="blabel">Свобода!</div>
+      </div>
+    </div>
+
+    <div class="already-card" id="already-card">
+      <div class="already-title" id="already-title"></div>
+      <div class="already-text" id="already-text"></div>
+    </div>
+
+    <div class="sending" id="sending">⏳ Записываем...</div>
+
+    <div class="result-card" id="result-card">
+      <div class="r-emoji" id="r-emoji"></div>
+      <div class="r-name" id="r-name"></div>
+      <div class="r-msg" id="r-msg"></div>
+      <div class="r-time" id="r-time"></div>
+      <div class="r-sync" id="r-sync"></div>
+    </div>
+
+    <div class="special-card" id="special-card">
+      <div class="special-title" id="special-title"></div>
+      <div class="special-text" id="special-text"></div>
+    </div>
+  </div>
+
+  <div class="view" id="view-log">
+    <div class="section-label">Отметки за сегодня</div>
+    <div id="log-list"></div>
+  </div>
+</div>
+
+<script>
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyx0MRNaRC4mZcG7TaSyiHcYCeYWzxpGyUj-L8EQyaUEsnBqOlcWffMnRrFKFwqrG9YiA/exec';
+
+const emps = [
+  { name:'Инна',  role:'Швея',        icon:'🧵', hourly:false, work:[['🧵','Нитка заправлена, машинка ждёт — погнали! Инна в деле 💪'],['⚡','Самые ровные строчки в цеху — это всегда Инна. Вперёд! 🎯'],['🔥','Руки-золото за станок! Сегодня рекорд? 😄'],['🌟','Лучшая швея уже здесь — можно выдыхать остальным 😎']], free:[['🎊','Сколько изделий сегодня? Катерина считает и радуется! 🌺'],['🛋️','Руки сегодня поработали на славу — теперь отдыхать! 💛'],['🌙','До завтра, мастер! Машинка уже скучает 😄']] },
+  { name:'Леся',  role:'Швея',        icon:'🧵', hourly:false, work:[['🧵','Леся за машинкой — значит дело пойдёт быстро и красиво! 💪'],['⚡','Строчка за строчкой, изделие за изделием — вперёд! 🎯'],['🔥','Золотые руки уже на месте! Погнали, Леся! 😎'],['🌟','Самые аккуратные швы — за тобой. Удачного дня! ✨']], free:[['🎊','Ещё один продуктивный день позади! Молодец 🌺'],['🛋️','Столько всего сшито — диван ждёт и заслуженно! 💛'],['🌙','До завтра! Пусть вечер будет таким же классным, как твои строчки 😄']] },
+  { name:'Эля',   role:'ОТК',         icon:'🔍', hourly:true,  work:[['🔍','Главный контролёр качества прибыла! Ни один брак не пройдёт 😤'],['✅','Эля в деле — значит каждое изделие будет идеальным! 💪'],['🎯','Зоркий глаз, твёрдая рука, высокие стандарты. Вперёд! 🔥'],['👑','ОТК открыт! Сегодня кант будет ровным, ткань настланной, брак пойман 😄']], free:[['✅','Сколько изделий прошло проверку сегодня? Катерина гордится! 🌺'],['🔍','Глаза отдыхают — они сегодня много работали! До завтра 💛'],['🎊','Качество под контролем, день закрыт. Молодец, Эля! 😄']] },
+  { name:'Оля',   role:'Раскрой',     icon:'✂️', hourly:true,  work:[['✂️','Ножи наточены, ткань ждёт — Оля за раскроем! 💪'],['🎯','Точный крой — это полдела. А Оля делает его идеально! ✨'],['🔥','Пачки для швей сами себя не сформируют! Вперёд, Оля 😄'],['🖨️','Пресс или раскрой — всё по плечу! Отличного дня 💪']], free:[['✂️','Сколько комплектов раскроено? Швеи скажут спасибо! 🌺'],['🎊','День закрыт! Принты нанесены, ткань нарезана, всё чётко 💛'],['🌙','До завтра, Оля! Ножницы отдыхают вместе с тобой 😄']] },
+  { name:'Света', role:'Утюжка',      icon:'👔', hourly:true,  work:[['👔','Утюг разогревается — Света прибыла! Изделия будут идеальными 😄'],['✨','Ни одной складки не останется! Света за работой 💪'],['🎁','Упаковка — это последнее впечатление покупателя. И оно будет отличным! 🌟'],['🔥','Без Светы изделия были бы мятые и неупакованные. Спасибо, что ты есть! ❤️']], free:[['👔','Сколько изделий упаковано? Покупатели на Озоне уже ждут! 🌺'],['✨','Всё выглажено, всё упаковано — день удался! 💛'],['🎊','До завтра, Света! Утюг остывает, ты отдыхаешь 😄']] },
+  { name:'Лиза',  role:'Конструктор', icon:'📐', hourly:true,  work:[['📐','Конструктор прибыла — новые лекала, образцы, идеи! Вперёд 💪'],['🎨','Без Лизы не было бы ни одной выкройки. Это важно! ✨'],['📦','Склад, ценники, принты, образцы — всё под контролем! 🎯'],['🖨️','Пресс или конструирование — Лиза везде справится 😎']], free:[['📐','Сколько задач закрыто сегодня? У Лизы их всегда много 😄💛'],['📦','Склад принят, образцы готовы, день закрыт! Молодец 🌺'],['🎊','До завтра, Лиза! Лекала подождут до утра 😄']] }
+];
+
+let selected = null;
+let isSending = false;
+
+function todayStr() { return new Date().toLocaleDateString('ru-RU'); }
+function roundNearest15(d) { const t=d.getHours()*60+d.getMinutes(); const r=Math.round(t/15)*15; return pad(Math.floor(r/60)%24)+':'+pad(r%60); }
+function pad(n) { return n.toString().padStart(2,'0'); }
+function timeToMins(s) { const p=s.split(':'); return parseInt(p[0])*60+parseInt(p[1]); }
+
+function updateClock() {
+  const now=new Date();
+  document.getElementById('clock').textContent=pad(now.getHours())+':'+pad(now.getMinutes());
+  document.getElementById('slot-display').textContent=roundNearest15(now);
+  const days=['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
+  const months=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+  document.getElementById('date-line').textContent=days[now.getDay()]+', '+now.getDate()+' '+months[now.getMonth()];
+}
+setInterval(updateClock,5000); updateClock();
+
+function getLog() { try { return JSON.parse(localStorage.getItem('mstory_log')||'[]').filter(function(e){return e.date===todayStr();}); } catch(e){return[];} }
+function getAllLog() { try { return JSON.parse(localStorage.getItem('mstory_log')||'[]'); } catch(e){return[];} }
+function saveLog(entry) { try { const a=getAllLog(); a.push(entry); localStorage.setItem('mstory_log',JSON.stringify(a)); } catch(e){} }
+
+// Проверяем уже ли отметился сегодня
+function getTodayStatus(name) {
+  const log = getLog();
+  const hasWork = log.some(function(e){ return e.name===name && e.type==='work'; });
+  const hasFree = log.some(function(e){ return e.name===name && e.type==='free'; });
+  return { hasWork: hasWork, hasFree: hasFree };
+}
+
+function renderEmps() {
+  const g=document.getElementById('emp-grid'); g.innerHTML='';
+  emps.forEach(function(emp) {
+    const d=document.createElement('div');
+    d.className='emp-btn'+(selected===emp.name?' selected':'');
+    d.innerHTML='<div class="emp-icon">'+emp.icon+'</div><div class="emp-name">'+emp.name+'</div><div class="emp-role">'+emp.role+'</div>';
+    d.onclick=function(){ selected=emp.name; renderEmps(); hideResult(); updateButtons(); };
+    g.appendChild(d);
+  });
+}
+
+function updateButtons() {
+  if (!selected) return;
+  const status = getTodayStatus(selected);
+  const btnWork = document.getElementById('btn-work');
+  const btnFree = document.getElementById('btn-free');
+  const alreadyCard = document.getElementById('already-card');
+
+  // Если уже отметила приход И уход — обе кнопки неактивны
+  if (status.hasWork && status.hasFree) {
+    btnWork.classList.add('disabled');
+    btnFree.classList.add('disabled');
+    alreadyCard.classList.add('show');
+    document.getElementById('already-title').textContent = '✅ ' + selected + ', ты уже отметилась сегодня!';
+    document.getElementById('already-text').textContent = 'Приход и уход записаны. До завтра! 🌙';
+  } else if (status.hasWork && !status.hasFree) {
+    // Приход есть, ухода нет — блокируем кнопку прихода
+    btnWork.classList.add('disabled');
+    btnFree.classList.remove('disabled');
+    alreadyCard.classList.add('show');
+    document.getElementById('already-title').textContent = '👍 ' + selected + ', приход уже записан';
+    document.getElementById('already-text').textContent = 'Нажми «Свобода!» когда будешь уходить.';
+  } else {
+    btnWork.classList.remove('disabled');
+    btnFree.classList.remove('disabled');
+    alreadyCard.classList.remove('show');
+  }
+}
+
+function hideResult() {
+  document.getElementById('result-card').classList.remove('show');
+  document.getElementById('special-card').classList.remove('show');
+  document.getElementById('sending').classList.remove('show');
+  document.getElementById('already-card').classList.remove('show');
+  document.getElementById('btn-work').classList.remove('disabled');
+  document.getElementById('btn-free').classList.remove('disabled');
+}
+
+function getSpecial(emp, type, slot) {
+  const now=new Date(); const isSat=now.getDay()===6;
+  const sm=timeToMins(slot); const s0=timeToMins('08:00'); const e0=timeToMins('17:00');
+  if(isSat&&type==='work') return {cls:'saturday',title:'💪 Суббота — а ты уже здесь!',text:'Настоящий профессионал! Катерина это обязательно заметит 😄'};
+  if(isSat&&type==='free') return {cls:'saturday',title:'🎉 Суббота отработана!',text:'Дополнительный балл в копилку. Теперь отдыхать! 🌿'};
+  if(type==='work'&&sm<s0) return {cls:'early',title:'🌅 Ранняя пташка!',text:'Пришла на '+(s0-sm)+' мин раньше всех! Такой старт — уже победа 😎'};
+  if(type==='free'&&sm>e0) {
+    const late=sm-e0;
+    const todayLog=getLog();
+    const we=todayLog.find(function(e){return e.name===emp.name&&e.type==='work';});
+    if(we&&emp.hourly){
+      const wm=sm-timeToMins(we.time)-60;
+      if(wm>0){
+        const hs=Math.floor(wm/60)+'ч'+(wm%60>0?' '+(wm%60)+'мин':'');
+        const msgs=['Ну ты сегодня просто огонь! '+hs+' чистого времени — это сила 🔥','День на максимум! '+hs+' — как супергерой 🦸‍♀️','Катерина такое не забывает! '+hs+' — ты сегодня лучшая 💛','Задержалась на '+late+' мин, зато '+hs+' в копилке. Красавица! 🌟'];
+        return {cls:'hero',title:'⭐ Ну ты сегодня крутая!',text:msgs[Math.floor(Math.random()*msgs.length)]};
+      }
+    }
+    return {cls:'late',title:'🌙 Засиделась, трудяга!',text:'Ушла на '+late+' мин позже нормы. Заслуженный отдых! 💜'};
+  }
+  return null;
+}
+
+async function markTime(type) {
+  if(!selected){alert('Выбери своё имя! 👆');return;}
+  if(isSending) return; // защита от двойного нажатия
+
+  const status = getTodayStatus(selected);
+  if(type==='work' && status.hasWork) return;
+  if(type==='free' && status.hasFree) return;
+
+  isSending = true;
+  const emp=emps.find(function(e){return e.name===selected;});
+  const slot=roundNearest15(new Date());
+
+  document.getElementById('btn-work').classList.add('disabled');
+  document.getElementById('btn-free').classList.add('disabled');
+  document.getElementById('sending').classList.add('show');
+
+  const pool=type==='work'?emp.work:emp.free;
+  const pick=pool[Math.floor(Math.random()*pool.length)];
+  document.getElementById('r-emoji').textContent=pick[0];
+  document.getElementById('r-name').textContent=selected;
+  document.getElementById('r-msg').textContent=pick[1];
+  document.getElementById('r-time').innerHTML=(type==='work'?'Начало работы: ':'Конец работы: ')+'<b>'+slot+'</b>';
+  document.getElementById('r-sync').textContent='';
+
+  let synced=false;
+  try {
+    await fetch(SCRIPT_URL+'?'+new URLSearchParams({name:selected,role:emp.role,type:type,time:slot,date:todayStr()}).toString(),{mode:'no-cors'});
+    synced=true;
+  } catch(e){}
+
+  saveLog({name:selected,role:emp.role,type:type,time:slot,date:todayStr(),synced:synced});
+
+  document.getElementById('sending').classList.remove('show');
+  document.getElementById('result-card').classList.add('show');
+  const se=document.getElementById('r-sync');
+  se.textContent=synced?'✓ Записано в таблицу':'⚠ Нет связи — сохранено локально';
+  se.className=synced?'r-sync ok':'r-sync err';
+
+  const sp=getSpecial(emp,type,slot);
+  if(sp){
+    const sc=document.getElementById('special-card');
+    sc.className='special-card show '+sp.cls;
+    document.getElementById('special-title').textContent=sp.title;
+    document.getElementById('special-text').textContent=sp.text;
+  }
+
+  isSending = false;
+  updateButtons();
+}
+
+function renderLog() {
+  const log=getLog(); const el=document.getElementById('log-list');
+  if(!log.length){el.innerHTML='<div class="empty">Пока никто не отметился 🌙</div>';return;}
+  el.innerHTML='';
+  var reversed = log.slice().reverse();
+  reversed.forEach(function(e){
+    const d=document.createElement('div'); d.className='log-item';
+    const th=e.type==='work'?'<span class="log-type-w">▶ к станку</span>':'<span class="log-type-f">■ свобода</span>';
+    const sh=e.synced?'<span class="log-sync-ok">✓ в таблице</span>':'<span class="log-sync-err">⚠ локально</span>';
+    d.innerHTML='<div class="log-left"><div class="log-name">'+e.name+'</div>'+th+'<div>'+sh+'</div></div><div class="log-time">'+e.time+'</div>';
+    el.appendChild(d);
+  });
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(function(t,i){
+    t.classList.toggle('active',(i===0&&tab==='checkin')||(i===1&&tab==='log'));
+  });
+  document.getElementById('view-checkin').classList.toggle('active',tab==='checkin');
+  document.getElementById('view-log').classList.toggle('active',tab==='log');
+  if(tab==='log') renderLog();
+}
+
+renderEmps();
+</script>
+</body>
+</html>
